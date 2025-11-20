@@ -10,14 +10,14 @@ bool currentSeatState;
 
 const unsigned short engageTime = 5000; // 5 seconds of no one being on the seat
 
-unsigned short sensorThreshold = 512; // change depending on sensor response
+unsigned short sensorThreshold =  85; // change depending on sensor response
 // ADD CALIBRATION (press button whilst seated to read how much the person + seat weighs)
-const unsigned short pressureCheckInterval = 200; // making these unsigned shorts is bad practice probably maybe but it'll be fine
+unsigned long pressureCheckInterval = 200; // making these unsigned shorts is bad practice probably maybe but it'll be fine
 
 // const int arraySize = engageTime/pressureCheckInterval;
 // bool prevSeatStates[arraySize];
 
-unsigned long previousCycleTime;
+long previousCycleTime;
 unsigned long seatTime;
 unsigned long seatChangeStateTime;
 
@@ -37,23 +37,29 @@ void setup() {
   digitalWrite(redLED, LOW);
 
   unsigned long startTime = millis();
-  previousCycleTime = startTime;
+  previousCycleTime = -1 * pressureCheckInterval;
   seatChangeStateTime = startTime;
+  
+  while (!Serial) {
+    ;
+  }
 
   Serial.println("System Engaged");
   Serial.println("Initial Conditions: ");
-  Serial.println("Time: " + startTime);
+  Serial.print("Time: ");
+  Serial.println(startTime);
   }
 
 void loop() {
   // put your main code here, to run repeatedly:
   long newCycleTime = millis(); 
+  Serial.println(newCycleTime);
 
   // CHECK SEAT EVERY pressureCheckInterval MILLISECONDS
-  if ((newCycleTime - previousCycleTime) <= pressureCheckInterval) {
-    Serial.println("New Cycle at Time: " + newCycleTime);
-    currentSeatState = checkSeat();
-    
+  if ((newCycleTime - previousCycleTime) >= pressureCheckInterval) {
+    Serial.print("New Active Cycle at Time: ");
+    Serial.println(newCycleTime);
+    currentSeatState = checkSeat();  
     //check if state is different than before
     if (currentSeatState == previousSeatState) { // same state as before
       seatTime = newCycleTime - seatChangeStateTime;
@@ -81,21 +87,25 @@ void loop() {
       seatTime = 0; // seat just changed state and has been in new state for 0 milliseconds
     }
     
-    
+    previousCycleTime = newCycleTime;
   }
   //prepare for next iteration
   previousSeatState = currentSeatState;
-  previousCycleTime = newCycleTime;
-  Serial.println("SeatTime: " + seatTime); 
+  Serial.print("SeatTime: "); 
+  Serial.println(seatTime);
 }
 
 bool checkSeat() {
   int sensorValue = analogRead(seatPin); // -> resistance directly(?) proportional to force applied 
+  Serial.print("Sensor Value: ");
+  Serial.println(sensorValue);
   if(sensorValue >= sensorThreshold) {
-    Serial.println("Person Detected, Value: " + sensorValue);
+    Serial.print("Person Detected, Value: ");
+    Serial.println(sensorValue);
     return true;
   } else {
-    Serial.println("Person NOT Detected, Value: " + sensorValue);
+    Serial.print("Person NOT Detected, Value: ");
+    Serial.println(sensorValue);
     return false;
   }
 }
